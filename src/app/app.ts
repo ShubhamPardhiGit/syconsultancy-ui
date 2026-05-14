@@ -26,7 +26,8 @@ interface Customer {
   styleUrls: ['./app.css']
 })
 export class App {
-  private readonly baseUrl = 'http://localhost:8080/users';
+  //private readonly baseUrl = 'http://localhost:8080/users';
+  private readonly baseUrl = 'https://syconsultancy-backend.onrender.com/users';
   private readonly apiUrl = `${this.baseUrl}/getAllUsers`;
   private readonly registerUrl = `${this.baseUrl}/register`;
   private readonly updateUrl = `${this.baseUrl}/updateUser`;
@@ -133,7 +134,7 @@ export class App {
     this.setStatus('Submitting customer data to backend...');
 
     const formData = new FormData();
-    const createdDate = new Date().toISOString();
+   
 
     formData.append('fullName', formValue.fullName || '');
     formData.append('passportNo', formValue.passportNo);
@@ -143,13 +144,13 @@ export class App {
     formData.append('mobileNo', formValue.mobileNo);
     formData.append('address', formValue.address);
     formData.append('remark', formValue.remark || '');
-    formData.append('createdDate', createdDate);
+    
 
     if (this.photoFile) {
-      formData.append('photo', this.photoFile);
+      formData.append('photoFile', this.photoFile);
     }
     if (this.cvFile) {
-      formData.append('cv', this.cvFile);
+      formData.append('cvFile', this.cvFile);
     }
 
     if (this.editMode() && formValue.id) {
