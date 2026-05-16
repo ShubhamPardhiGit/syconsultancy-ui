@@ -27,8 +27,8 @@ interface Customer {
   styleUrls: ['./app.css']
 })
 export class App {
-  private readonly baseUrl = 'http://localhost:8080/users';
-  //private readonly baseUrl = 'https://syconsultancy-backend.onrender.com/users';
+  //private readonly baseUrl = 'http://localhost:8080/users';
+  private readonly baseUrl = 'https://syconsultancy-backend.onrender.com/users';
   private readonly apiUrl = `${this.baseUrl}/getAllUsers`;
   private readonly userUrl = `${this.baseUrl}/getUser`;
   private readonly registerUrl = `${this.baseUrl}/register`;
