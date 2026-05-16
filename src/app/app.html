@@ -1,27 +1,72 @@
 ﻿<main class="page-shell">
-  <section class="hero-panel">
+  <div class="toast" *ngIf="toastMessage()" [class.success]="toastType() === 'success'" [class.error]="toastType() === 'error'">
+    {{ toastMessage() }}
+  </div>
+  <div class="loader-overlay" *ngIf="isLoading()">
+    <div class="loader"></div>
+    <p>Loading...</p>
+  </div>
+  <section class="cards" *ngIf="authState() === 'logged-out'">
+    <article class="card login-card">
+      <div class="card-header">
+        <div>
+          <p class="card-label">Secure access</p>
+          <h2>Staff login required</h2>
+        </div>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="login()">
+        <div class="field-grid">
+          <div class="field">
+            <label for="username">Username</label>
+            <input id="username" type="text" formControlName="username" placeholder="Enter username" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" formControlName="password" placeholder="Enter password" />
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button type="submit" class="primary">Login</button>
+        </div>
+
+        <p class="login-note">Welcome to SYCONSULTANCY, please enter username and password to login.</p>
+      </form>
+    </article>
+  </section>
+
+  <section class="hero-panel" *ngIf="authState() === 'logged-in'">
     <div>
       <span class="eyebrow">SY Consultancy</span>
-      <h1>Overseas placement made precise.</h1>
+      <h1 *ngIf="viewMode() === 'welcome'">Welcome to SY Consultancy</h1>
+      <h1 *ngIf="viewMode() === 'form'">Customer intake form</h1>
+      <h1 *ngIf="viewMode() === 'list'">Customer roster</h1>
       <p>
         Manage candidate appointments, interviews, passport processing, and documentation from one modern dashboard.
         Build professional overseas hiring journeys with a clear customer roster, fast search and edit workflows.
       </p>
     </div>
     <div class="hero-actions">
-      <button type="button" class="primary" (click)="resetForm()">New customer profile</button>
-      <button type="button" class="secondary" (click)="fetchCustomers()">Refresh customer list</button>
+      <button *ngIf="viewMode() === 'welcome'" type="button" class="primary" (click)="showForm()">New customer profile</button>
+      <button *ngIf="viewMode() === 'welcome'" type="button" class="secondary" (click)="showList()">View customer list</button>
+      <button *ngIf="viewMode() !== 'welcome'" type="button" class="secondary" (click)="showWelcome()">Home</button>
+      <button *ngIf="viewMode() === 'list'" type="button" class="secondary" (click)="fetchCustomers()">Refresh customer list</button>
+      <button type="button" class="secondary" (click)="logout()">Logout</button>
     </div>
   </section>
 
-  <section class="cards">
-    <article class="card form-card">
+  <section class="cards" *ngIf="authState() === 'logged-in' && viewMode() !== 'welcome'">
+    <article class="card form-card" *ngIf="viewMode() === 'form' || (viewMode() === 'details' && editMode())">
       <div class="card-header">
         <div>
           <p class="card-label">Candidate profile</p>
           <h2>{{ editMode() ? 'Edit candidate details' : 'Customer intake form' }}</h2>
         </div>
-        <span class="status-indicator">{{ statusMessage() }}</span>
+        <div class="card-actions">
+          <button type="button" class="tiny" (click)="showWelcome()">Home</button>
+          <span class="status-indicator">{{ statusMessage() }}</span>
+        </div>
       </div>
 
       <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()">
@@ -52,7 +97,10 @@
 
           <div class="field">
             <label for="ppType">Passport type</label>
-            <input id="ppType" type="text" formControlName="ppType" placeholder="Enter passport type" />
+            <select id="ppType" formControlName="ppType">
+              <option value="ECR">ECR</option>
+              <option value="ECNR">ECNR</option>
+            </select>
             <small class="field-error" *ngIf="customerForm.controls['ppType'].invalid && customerForm.controls['ppType'].touched">Passport type is required.</small>
           </div>
 
@@ -101,7 +149,55 @@
       </form>
     </article>
 
-    <article class="card list-card">
+    <article class="card details-card" *ngIf="viewMode() === 'details' && selectedCustomer() && !editMode()">
+      <div class="card-header">
+        <div>
+          <p class="card-label">Candidate details</p>
+          <h2>Candidate details</h2>
+        </div>
+        <div class="card-actions">
+          <button type="button" class="tiny" (click)="showWelcome()">Home</button>
+          <span class="status-indicator">{{ statusMessage() }}</span>
+        </div>
+      </div>
+
+      <div class="details-top" *ngIf="selectedCustomer() as customer">
+        <div class="detail-profile">
+          <div class="detail-row"><span>Name</span><strong>{{ customer.fullName }}</strong></div>
+          <div class="detail-row"><span>Date of birth</span><strong>{{ customer.dob }}</strong></div>
+          <div class="detail-row"><span>Mobile</span><strong>{{ customer.mobileNo }}</strong></div>
+          <div class="detail-row"><span>Passport</span><strong>{{ customer.passportNo }}</strong></div>
+          <div class="detail-row"><span>Passport type</span><strong>{{ customer.ppType }}</strong></div>
+          <div class="detail-row"><span>Designation</span><strong>{{ customer.designation }}</strong></div>
+          <div class="detail-row detail-wide"><span>Address</span><strong>{{ customer.address }}</strong></div>
+          <div class="detail-row detail-wide"><span>Remarks</span><strong>{{ customer.remark }}</strong></div>
+        </div>
+
+        <div class="detail-attachments">
+          <div class="photo-panel" *ngIf="photoSrc()">
+            <span class="attachment-label">Photo</span>
+            <img [src]="photoSrc()" alt="Candidate photo" />
+          </div>
+          <div class="cv-panel">
+            <span class="attachment-label">Resume / CV</span>
+            <ng-container *ngIf="cvHref(); else simpleCvText">
+              <a [href]="cvHref()" [attr.download]="cvDownloadName()" target="_blank" rel="noopener" class="file-link">{{ cvLabel() }}</a>
+            </ng-container>
+            <ng-template #simpleCvText>
+              <span class="file-text">{{ cvLabel() }}</span>
+            </ng-template>
+          </div>
+          <div class="detail-row"><span>Created date</span><strong>{{ customer.createdDate || 'N/A' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="detail-buttons">
+        <button type="button" class="primary" (click)="enableDetailEdit()">Edit</button>
+        <button type="button" class="secondary" (click)="showList()">Back to list</button>
+      </div>
+    </article>
+
+    <article class="card list-card" *ngIf="viewMode() === 'list'">
       <div class="card-header">
         <div>
           <p class="card-label">Customer roster</p>
@@ -140,7 +236,8 @@
               <td>{{ customer.designation }}</td>
               <td><span class="badge">{{ customer.ppType }}</span></td>
               <td class="row-action">
-                <button type="button" class="secondary" (click)="editCustomer(customer)">Edit</button>
+                <button type="button" class="secondary" (click)="viewCustomer(customer)">View</button>
+                <button type="button" class="danger" (click)="deleteCustomer(customer)">Delete</button>
               </td>
             </tr>
             <tr *ngIf="filteredCustomers().length === 0">
